@@ -1,0 +1,579 @@
+<div class="shell">
+
+  <header>
+    <div>
+      <span class="eyebrow">
+        {{ t('PERSONAL LEDGER', 'បញ្ជីបំណុលផ្ទាល់ខ្លួន') }}
+      </span>
+
+      <h1>
+        {{ t('Debtor Notebook', 'បញ្ជីអ្នកជំពាក់') }}
+      </h1>
+
+      <p>
+        {{
+          t(
+            'Keep every debt clear, simple and on time.',
+            'កត់ត្រាបំណុលឱ្យបានច្បាស់លាស់ ងាយស្រួល និងទាន់ពេលវេលា។'
+          )
+        }}
+      </p>
+    </div>
+
+    <div class="header-actions">
+
+      <div class="language-switch">
+        <button
+          type="button"
+          [class.active]="language === 'en'"
+          (click)="setLanguage('en')">
+          EN
+        </button>
+
+        <button
+          type="button"
+          [class.active]="language === 'km'"
+          (click)="setLanguage('km')">
+          ខ្មែរ
+        </button>
+      </div>
+
+      <button
+        class="primary"
+        type="button"
+        (click)="open()">
+        ＋ {{ t('Add debtor', 'បន្ថែមអ្នកជំពាក់') }}
+      </button>
+
+    </div>
+  </header>
+
+
+  <!-- STATISTICS -->
+
+  <section class="stats">
+
+    <article>
+      <span>
+        {{ t('Outstanding USD', 'បំណុលជាដុល្លារ') }}
+      </span>
+
+      <strong>
+        ${{ usd | number:'1.2-2' }}
+      </strong>
+
+      <small>
+        {{ t('Unpaid balance', 'ចំនួនមិនទាន់សង') }}
+      </small>
+    </article>
+
+
+    <article>
+      <span>
+        {{ t('Outstanding Riel', 'បំណុលជារៀល') }}
+      </span>
+
+      <strong>
+        {{ khr | number:'1.0-0' }} ៛
+      </strong>
+
+      <small>
+        {{ t('Unpaid balance', 'ចំនួនមិនទាន់សង') }}
+      </small>
+    </article>
+
+
+    <article>
+      <span>
+        {{ t('Open debts', 'បំណុលមិនទាន់សង') }}
+      </span>
+
+      <strong>
+        {{ openDebtCount }}
+      </strong>
+
+      <small>
+        {{ t('Unpaid records', 'កំណត់ត្រាមិនទាន់សង') }}
+      </small>
+    </article>
+
+  </section>
+
+
+  <!-- ERROR -->
+
+  <p
+    class="error"
+    *ngIf="error">
+    {{ error }}
+  </p>
+
+
+  <!-- MAIN PANEL -->
+
+  <section class="panel">
+
+    <div class="toolbar">
+
+      <input
+        [(ngModel)]="search"
+        [placeholder]="t(
+          'Search debtor name...',
+          'ស្វែងរកឈ្មោះអ្នកជំពាក់...'
+        )">
+
+      <select [(ngModel)]="filter">
+
+        <option value="all">
+          {{ t('All status', 'ស្ថានភាពទាំងអស់') }}
+        </option>
+
+        <option value="unpaid">
+          {{ t('Unpaid', 'មិនទាន់សង') }}
+        </option>
+
+        <option value="overdue">
+          {{ t('Overdue', 'ហួសកំណត់') }}
+        </option>
+
+        <option value="paid">
+          {{ t('Paid', 'បានសង') }}
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <!-- LOADING -->
+
+    <div
+      class="empty"
+      *ngIf="loading">
+
+      <b>
+        {{ t('Loading...', 'កំពុងទាញទិន្នន័យ...') }}
+      </b>
+
+      <span>
+        {{ t('Please wait a moment.', 'សូមរង់ចាំបន្តិច។') }}
+      </span>
+
+    </div>
+
+
+    <!-- NO DATA -->
+
+    <div
+      class="empty"
+      *ngIf="!loading && filtered.length === 0">
+
+      <b>
+        {{ t('No debts found', 'រកមិនឃើញបំណុល') }}
+      </b>
+
+      <span>
+        {{
+          t(
+            'Add your first debtor to get started.',
+            'សូមបន្ថែមអ្នកជំពាក់ដំបូងរបស់អ្នក។'
+          )
+        }}
+      </span>
+
+    </div>
+
+
+    <!-- DEBT LIST -->
+
+    <div
+      class="cards"
+      *ngIf="!loading">
+
+      <article
+        class="debt"
+        *ngFor="let d of filtered">
+
+
+        <!-- AVATAR -->
+
+        <div class="avatar">
+          {{ d.name.charAt(0).toUpperCase() }}
+        </div>
+
+
+        <!-- INFO -->
+
+        <div class="info">
+
+          <h3>
+            {{ d.name }}
+          </h3>
+
+          <span>
+
+            {{ t('Owed', 'ថ្ងៃជំពាក់') }}
+
+            {{ d.owedDate | date:'mediumDate' }}
+
+            ·
+
+            {{ t('Due', 'ថ្ងៃកំណត់សង') }}
+
+            {{ d.dueDate | date:'mediumDate' }}
+
+          </span>
+
+
+          <p *ngIf="d.note">
+            {{ d.note }}
+          </p>
+
+
+          <p *ngIf="d.invoiceNumber">
+
+            🧾
+            {{ t('Invoice', 'វិក្កយបត្រ') }}:
+            {{ d.invoiceNumber }}
+
+          </p>
+
+
+          <a
+            *ngIf="d.invoiceData"
+            [href]="d.invoiceData"
+            [attr.download]="d.invoiceName || 'invoice'"
+            target="_blank"
+            rel="noopener">
+
+            📎
+            {{
+              t(
+                'View / download invoice',
+                'មើល / ទាញយកវិក្កយបត្រ'
+              )
+            }}
+
+          </a>
+
+        </div>
+
+
+        <!-- MONEY -->
+
+        <strong class="money">
+
+          {{ d.currency === 'USD' ? '$' : '' }}
+
+          {{
+            d.amount |
+            number:
+            (
+              d.currency === 'USD'
+                ? '1.2-2'
+                : '1.0-0'
+            )
+          }}
+
+          {{ d.currency === 'KHR' ? ' ៛' : '' }}
+
+        </strong>
+
+
+        <!-- STATUS -->
+
+        <span
+          class="badge"
+          [class]="'badge ' + state(d)">
+
+          {{ statusText(state(d)) }}
+
+        </span>
+
+
+        <!-- ACTIONS -->
+
+        <div class="actions">
+
+          <button
+            type="button"
+            (click)="paid(d)">
+
+            {{
+              d.status === 'paid'
+                ? t('Undo', 'ត្រឡប់វិញ')
+                : t('✓ Paid', '✓ បានសង')
+            }}
+
+          </button>
+
+
+          <button
+            type="button"
+            (click)="open(d)">
+
+            {{ t('Edit', 'កែប្រែ') }}
+
+          </button>
+
+
+          <button
+            type="button"
+            class="danger"
+            (click)="del(d)">
+
+            {{ t('Delete', 'លុប') }}
+
+          </button>
+
+        </div>
+
+      </article>
+
+    </div>
+
+  </section>
+
+</div>
+
+
+<!-- =============================
+     ADD / EDIT MODAL
+============================= -->
+
+<div
+  class="modal"
+  *ngIf="showForm">
+
+  <form (ngSubmit)="save()">
+
+
+    <!-- HEADER -->
+
+    <div class="formhead">
+
+      <div>
+
+        <small>
+          {{
+            editing
+              ? t('UPDATE RECORD', 'កែប្រែកំណត់ត្រា')
+              : t('NEW RECORD', 'កំណត់ត្រាថ្មី')
+          }}
+        </small>
+
+
+        <h2>
+          {{
+            editing
+              ? t('Edit debtor', 'កែប្រែអ្នកជំពាក់')
+              : t('Add debtor', 'បន្ថែមអ្នកជំពាក់')
+          }}
+        </h2>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="close"
+        (click)="closeModal()">
+        ×
+      </button>
+
+    </div>
+
+
+    <!-- NAME -->
+
+    <label>
+
+      {{ t('Name', 'ឈ្មោះ') }}
+
+      <input
+        name="name"
+        [(ngModel)]="form.name"
+        required
+        [placeholder]="t('e.g. Dara', 'ឧ. ដារ៉ា')">
+
+    </label>
+
+
+    <!-- AMOUNT / CURRENCY -->
+
+    <div class="row">
+
+      <label>
+
+        {{ t('Amount', 'ចំនួនទឹកប្រាក់') }}
+
+        <input
+          name="amount"
+          [(ngModel)]="form.amount"
+          type="number"
+          min="0"
+          required>
+
+      </label>
+
+
+      <label>
+
+        {{ t('Currency', 'រូបិយប័ណ្ណ') }}
+
+        <select
+          name="currency"
+          [(ngModel)]="form.currency">
+
+          <option value="USD">
+            USD ($)
+          </option>
+
+          <option value="KHR">
+            KHR (៛)
+          </option>
+
+        </select>
+
+      </label>
+
+    </div>
+
+
+    <!-- DATES -->
+
+    <div class="row">
+
+      <label>
+
+        {{ t('Date owed', 'ថ្ងៃជំពាក់') }}
+
+        <input
+          name="owedDate"
+          [(ngModel)]="form.owedDate"
+          type="date">
+
+      </label>
+
+
+      <label>
+
+        {{ t('Deadline', 'ថ្ងៃកំណត់សង') }}
+
+        <input
+          name="dueDate"
+          [(ngModel)]="form.dueDate"
+          type="date"
+          required>
+
+      </label>
+
+    </div>
+
+
+    <!-- INVOICE NUMBER -->
+
+    <label>
+
+      {{ t('Invoice number', 'លេខវិក្កយបត្រ') }}
+
+      <input
+        name="invoiceNumber"
+        [(ngModel)]="form.invoiceNumber"
+        [placeholder]="t(
+          'e.g. INV-0001',
+          'ឧ. INV-0001'
+        )">
+
+    </label>
+
+
+    <!-- INVOICE ATTACHMENT -->
+
+    <label>
+
+      {{
+        t(
+          'Invoice attachment (PDF / JPG / PNG / WebP, max 2 MB)',
+          'ឯកសារវិក្កយបត្រ (PDF / JPG / PNG / WebP អតិបរមា 2 MB)'
+        )
+      }}
+
+      <input
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp"
+        (change)="invoiceSelected($event)">
+
+    </label>
+
+
+    <!-- CURRENT FILE -->
+
+    <div
+      class="invoice-file"
+      *ngIf="form.invoiceName">
+
+      <span>
+        📎 {{ form.invoiceName }}
+      </span>
+
+      <button
+        type="button"
+        class="danger"
+        (click)="removeInvoice()">
+
+        {{ t('Remove attachment', 'លុបឯកសារ') }}
+
+      </button>
+
+    </div>
+
+
+    <!-- NOTE -->
+
+    <label>
+
+      {{ t('Note', 'កំណត់ចំណាំ') }}
+
+      <textarea
+        name="note"
+        [(ngModel)]="form.note"
+        [placeholder]="t(
+          'Optional note...',
+          'កំណត់ចំណាំបន្ថែម...'
+        )">
+      </textarea>
+
+    </label>
+
+
+    <!-- BUTTONS -->
+
+    <div class="formactions">
+
+      <button
+        type="button"
+        (click)="closeModal()">
+
+        {{ t('Cancel', 'បោះបង់') }}
+
+      </button>
+
+
+      <button
+        class="primary"
+        type="submit">
+
+        {{
+          editing
+            ? t('Save changes', 'រក្សាទុកការកែប្រែ')
+            : t('Save debt', 'រក្សាទុកបំណុល')
+        }}
+
+      </button>
+
+    </div>
+
+  </form>
+
+</div>
